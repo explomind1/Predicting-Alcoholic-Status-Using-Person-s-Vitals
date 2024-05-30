@@ -1,3 +1,8 @@
+<p align="center">
+   <img src="https://github.com/explomind1/twiliowhatsappbot/blob/main/d_Bs2thQvi.svg" />
+</p>
+
+
 # Predicting Alcoholic Status Using Person's Vitals
 
 ## Overview
