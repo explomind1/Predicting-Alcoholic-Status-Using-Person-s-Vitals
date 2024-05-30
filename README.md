@@ -1,20 +1,8 @@
-**Title**: Predicting Alcoholic Status Using Person's Vitals
-
-This repository contains my solution for the Kaggle competition "Predicting Alcoholic Status Using Person's Vitals." The goal of the competition is to develop the best classification model to predict alcoholic status based on a person's vitals. The dataset consists of 70,000 training observations and 30,000 test observations, with 26 predictors each.
-
-### Detailed README
-
 # Predicting Alcoholic Status Using Person's Vitals
 
 ## Overview
 
 This repository contains my solution for the Kaggle competition "Predicting Alcoholic Status Using Person's Vitals." The competition, hosted for UCLA statistics students, aims to create the best classification model to predict whether an individual is an alcoholic based on their vitals.
-
-## About the Competition
-
-- **Start Date**: October 26, 2023
-- **End Date**: December 8, 2023
-- **Submission Deadline**: December 1, 2023 @ 11:59 PM
 
 ### Dataset Description
 
@@ -26,6 +14,36 @@ The dataset is sourced from the National Health Insurance Service in Korea, with
 The primary objectives are:
 1. Analysis of body signals
 2. Classification of drinker (Alcoholic status)
+
+### Data Features
+
+- **sex**: Sex of the individual (male or female).
+- **age**: Age categorized in 5-year intervals, represented by the lower bound of the interval (e.g., 20-24 years → 20 years).
+- **height**: Height of the individual in 5 cm increments.
+- **weight**: Weight of the individual in 5 kg increments.
+- **waistline**: Waist circumference of the individual.
+- **sight_left**: Visual acuity of the left eye (range: 0.1-2.5).
+- **sight_right**: Visual acuity of the right eye (range: 0.1-2.5).
+- **hear_left**: Hearing in the left ear (1 = normal, 2 = abnormal).
+- **hear_right**: Hearing in the right ear (1 = normal, 2 = abnormal).
+- **SBP**: Systolic blood pressure in mmHg.
+- **DBP**: Diastolic blood pressure in mmHg.
+- **BLDS**: Fasting blood glucose in mg/dL.
+- **tot_chole**: Total cholesterol concentration in mg/dL.
+- **HDL_chole**: HDL cholesterol concentration in mg/dL.
+- **LDL_chole**: LDL cholesterol concentration in mg/dL.
+- **triglyceride**: Triglyceride concentration in mg/dL.
+- **hemoglobin**: Hemoglobin concentration in g/dL.
+- **urine_protein**: Protein level in urine (encoded: 1(-), 2(+/-), 3(+1), 4(+2), 5(+3), 6(+4)).
+- **serum_creatinine**: Serum creatinine concentration in mg/dL.
+- **SGOT_AST**: SGOT-AST value in IU/L.
+- **SGOT_ALT**: SGOT-ALT value in IU/L.
+- **gamma_GTP**: Gamma-GTP value in IU/L.
+- **Alcoholic.Status**: Indicator of alcoholic status (Y = Yes, N = No).
+- **BMI**: Body Mass Index (range: 12 – 42.5).
+- **BMI.Category**: Categories for BMI (Underweight, Healthy, Obese, Overweight).
+- **AGE.Category**: Categories for age (Young, Mid-aged, Old, Very Old).
+- **Smoking.Status**: Smoking status (1 = never smoked, 2 = former smoker, 3 = current smoker).
 
 ### Evaluation
 
