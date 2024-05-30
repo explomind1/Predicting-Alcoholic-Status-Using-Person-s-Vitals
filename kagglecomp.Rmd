@@ -1,0 +1,2770 @@
+---
+title: "KaggleCompGodMode"
+output: html_document
+date: "2023-11-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+
+# Read the datasets
+train_data <- read.csv('TrainSAData2.csv')
+test_data <- read.csv('TestSAData2NoY.csv')
+
+
+# Handling missing values
+# Impute missing numerical values with the median
+num_vars_train <- sapply(train_data, is.numeric)
+train_data[num_vars_train] <- lapply(train_data[num_vars_train], function(x) ifelse(is.na(x), median(x, na.rm = TRUE), x))
+
+num_vars_test <- sapply(test_data, is.numeric)
+test_data[num_vars_test] <- lapply(test_data[num_vars_test], function(x) ifelse(is.na(x), median(x, na.rm = TRUE), x))
+
+# Impute missing categorical values with the mode
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+cat_vars_train <- sapply(train_data, is.character)
+train_data[cat_vars_train] <- lapply(train_data[cat_vars_train], function(x) ifelse(is.na(x), as.character(getmode(x)), x))
+
+cat_vars_test <- sapply(test_data, is.character)
+test_data[cat_vars_test] <- lapply(test_data[cat_vars_test], function(x) ifelse(is.na(x), as.character(getmode(x)), x))
+
+# Convert categorical variables to 'factor' type
+for (var in names(cat_vars_train)[cat_vars_train]) {
+  train_data[[var]] <- as.factor(train_data[[var]])
+}
+
+for (var in names(cat_vars_test)[cat_vars_test]) {
+  test_data[[var]] <- as.factor(test_data[[var]])
+}
+
+# Display first few rows of the datasets
+head(train_data)
+head(test_data)
+
+```
+
+
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(GGally)
+library(corrplot)
+
+# Read the datasets
+
+# Summary statistics for numerical variables
+print(summary(train_data[sapply(train_data, is.numeric)]))
+
+# Summary statistics for categorical variables
+print(summary(train_data[sapply(train_data, is.factor)]))
+
+# Plotting distributions of key numerical variables
+# Histogram for Age
+ggplot(train_data, aes(x = age)) + 
+    geom_histogram(bins = 30, fill = 'blue', alpha = 0.7) +
+    labs(title = 'Distribution of Age', x = 'Age', y = 'Frequency')
+
+# Histogram for Weight
+ggplot(train_data, aes(x = weight)) + 
+    geom_histogram(bins = 30, fill = 'green', alpha = 0.7) +
+    labs(title = 'Distribution of Weight', x = 'Weight', y = 'Frequency')
+
+# Histogram for BMI
+ggplot(train_data, aes(x = BMI)) + 
+    geom_histogram(bins = 30, fill = 'red', alpha = 0.7) +
+    labs(title = 'Distribution of BMI', x = 'BMI', y = 'Frequency')
+
+# Correlation Analysis among numerical variables
+correlation_matrix <- cor(train_data[sapply(train_data, is.numeric)], use = "complete.obs")
+corrplot(correlation_matrix, method = "circle")
+
+# Analysis of Categorical Variables - Smoking Status vs Alcoholic Status
+ggplot(train_data, aes(x = Smoking.Status, fill = Alcoholic.Status)) + 
+    geom_bar(position = "dodge") +
+    labs(title = 'Smoking Status vs Alcoholic Status', x = 'Smoking Status', y = 'Count')
+
+```
+
+
+
+## i all do Given the need for a nuanced and high-performing model for this task, I suggest using a Gradient Boosting Machine (GBM) model. GBMs are powerful for classification tasks and can handle a mix of numerical and categorical variables effectively. They work well with large datasets and can capture complex patterns through ensemble learning.
+
+Before building the GBM model, let's perform some feature engineering based on the insights from our EDA:
+
+Creating Interaction Terms: Sometimes, the interaction between two variables can be more informative than the variables themselves.
+Encoding Categorical Variables: We'll encode categorical variables properly for modeling.
+Standardizing Numerical Variables: This is especially important for gradient boosting models.
+After feature engineering, we'll split the training data into a training and validation set, train the GBM model, and evaluate it on the validation set before making predictions on the test dataset.
+
+Let's start with feature engineering.
+
+Error analyzing
+It seems there was an error in the feature engineering and model building process. The issue is likely related to the handling of categorical variables and the target variable 'Alcoholic.Status'. I will adjust the process, ensuring that categorical variables are appropriately encoded and that the target variable is correctly specified for the model. Let's correct and retry the process.​​
+
+The Gradient Boosting Machine (GBM) model has been successfully trained and evaluated on the validation set, achieving an accuracy of approximately 73.23%.
+
+This accuracy is a good start, but there's potential for improvement. This could involve further tuning of the model parameters, more advanced feature engineering, or trying different algorithms.
+
+Next Steps:
+Model Tuning: Adjusting parameters like the number of estimators, learning rate, and tree depth in the GBM model can improve performance.
+Advanced Feature Engineering: We could create more complex interaction terms or derive new features based on domain knowledge.
+Alternative Models: Exploring other models like Random Forest, XGBoost, or even deep learning approaches could yield better results.
+For now, let's proceed with making predictions on the test data using the current model to assess its performance in a real-world scenario.
+
+I'll prepare the test data similarly and make predictions. Let's proceed.​​
+
+The predictions for the test dataset have been generated using the Gradient Boosting Machine (GBM) model. The 'Alcoholic.Status' column in the submission dataframe represents the predicted status, where '1' indicates an alcoholic and '0' indicates a non-alcoholic.
+
+Next Steps:
+Submission to Kaggle: You can submit this prediction file to the Kaggle competition to see how the model performs against unseen data.
+Further Model Improvement: Depending on the Kaggle score and leaderboard position, further model tuning or trying different algorithms might be necessary.
+If you need the submission file, I can save it and provide you with a download link. Let me know if you'd like to proceed with this or if there's anything else you need
+
+=======
+
+ 
+```{r}
+# Load necessary libraries
+library(gbm)
+library(caret)
+
+# Assuming your train_data is already preprocessed
+
+# Splitting the data into training and validation sets
+set.seed(123)  # for reproducibility
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Preparing the data for GBM
+# Converting factors to numeric as GBM in caret requires numeric binary classification
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+#validation_set$Alcoholic.Status <- ifelse(validation_set$Alcoholic.Status == 1, "Y", "N")
+
+
+# Building the GBM model
+set.seed(123)
+gbm_model <- gbm(Alcoholic.Status ~ ., 
+                 data = train_set, 
+                 distribution = "bernoulli", 
+                 n.trees = 500, 
+                 interaction.depth = 3,
+                 shrinkage = 0.1,
+                 cv.folds = 5)
+
+# Predicting on the validation set
+predictions <- predict(gbm_model, newdata = validation_set, n.trees = 500, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+#predicted_classes <- ifelse(predictions > 0.5, "Y", "N")
+
+# Calculating accuracy
+accuracy <- mean(predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+# Predicting on the test set instead of the validation set
+test_predictions <- predict(gbm_model, newdata = test_data, n.trees = 500, type = "response")
+test_predicted_classes <- ifelse(test_predictions > 0.5, 1, 0)
+#test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+
+
+# Creating the submission file with the correct predictions
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+
+# Write the submission dataframe to a CSV file
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial3.csv", row.names = FALSE)
+
+
+# Write the submission dataframe to a CSV file
+
+```
+
+```{r}
+# Load necessary libraries
+library(gbm)
+library(caret)
+
+# Assuming your train_data is already preprocessed
+
+# Splitting the data into training and validation sets
+set.seed(123)  # for reproducibility
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Preparing the data for GBM
+# Converting factors to numeric as GBM in caret requires numeric binary classification
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+#validation_set$Alcoholic.Status <- ifelse(validation_set$Alcoholic.Status == 1, "Y", "N")
+
+
+# Building the GBM model
+set.seed(123)
+gbm_model <- gbm(Alcoholic.Status ~ ., 
+                 data = train_set, 
+                 distribution = "bernoulli", 
+                 n.trees = 1000, 
+                 interaction.depth = 3,
+                 shrinkage = 0.15,
+                 cv.folds = 5)
+
+# Predicting on the validation set
+predictions <- predict(gbm_model, newdata = validation_set, n.trees = 1000, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+#predicted_classes <- ifelse(predictions > 0.5, "Y", "N")
+
+# Calculating accuracy
+accuracy <- mean(predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+# Predicting on the test set instead of the validation set
+test_predictions <- predict(gbm_model, newdata = test_data, n.trees = 1000, type = "response")
+test_predicted_classes <- ifelse(test_predictions > 0.5, 1, 0)
+#test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+
+
+# Creating the submission file with the correct predictions
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+
+# Write the submission dataframe to a CSV file
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial321.csv", row.names = FALSE)
+
+
+# Write the submission dataframe to a CSV file
+
+```
+
+from 0.726980498607043to .. with interaction 5 to 3.
+# now time to make it  to 0 1 as the output that is it:
+
+
+# tried 1000- and 72.9 ish!
+
+```{r}
+
+start_time <- Sys.time()
+# End timer and calculate duration
+
+
+
+# Load necessary libraries
+library(gbm)
+library(caret)
+
+# Assuming your train_data is already preprocessed
+
+# Splitting the data into training and validation sets
+set.seed(123)  # for reproducibility
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Preparing the data for GBM
+# Converting factors to numeric as GBM in caret requires numeric binary classification
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+#validation_set$Alcoholic.Status <- ifelse(validation_set$Alcoholic.Status == 1, "Y", "N")
+
+
+# Building the GBM model
+set.seed(123)
+gbm_model <- gbm(Alcoholic.Status ~ ., 
+                 data = train_set, 
+                 distribution = "bernoulli", 
+                 n.trees = 50, 
+                 interaction.depth = 3,
+                 shrinkage = 0.1,
+                 cv.folds = 5)
+
+
+
+# Predicting on the validation set
+predictions <- predict(gbm_model, newdata = validation_set, n.trees = 50, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+#predicted_classes <- ifelse(predictions > 0.5, "Y", "N")
+
+# Calculating accuracy
+accuracy <- mean(predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+# Predicting on the test set instead of the validation set
+test_predictions <- predict(gbm_model, newdata = test_data, n.trees = 50, type = "response")
+#test_predicted_classes <- ifelse(test_predictions > 0.5, 1, 0)
+test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+
+
+# Creating the submission file with the correct predictions
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+
+# Write the submission dataframe to a CSV file
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial14.csv", row.names = FALSE)
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+
+# Stop parallel processing after the model training
+
+# Print the duration
+print(paste("Model training took:", duration))
+
+```
+#after using 8 cores paralell::from 12 seconds to
+
+```{r}
+# Load necessary libraries
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+                       n.trees = c(500,1000), 
+                       shrinkage = c(0.05,0.1), 
+                       n.minobsinnode = c(10,20))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial34.csv", row.names = FALSE)
+
+
+
+```
+
+# it was 72.89 much better
+
+
+
+```{r}
+# Load the parallel package
+library(parallel)
+
+# Detect the number of cores
+num_cores <- detectCores()
+
+# Print the number of cores
+print(paste("Number of cores:", num_cores))
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 2, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(4), 
+                       n.trees = c(900), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial178.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 2, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(20))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial35.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+8:50 pm started!- 
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(5,7,10), 
+                       n.trees = c(500,1000), 
+                       shrinkage = c(0.07,0.1), 
+                       n.minobsinnode = c(20,30,40))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial99.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(7), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial102.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+
+
+
+# Takeaways when i ran 73% it took about 5 min, then i tried a waay complex model it took 2 hours to run and it was lower than the previous one WTF!!--
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 2, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial555.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.8, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 2, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2GODMODE_trial777.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+# I will do the csv above with 99.9 percent and submit it not 80!
+# i will select the features that makes sense then repeat the smae thing! didnt work!
+
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 2, repeats = 2)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishGODMODE999.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+
+
+
+# took 5 mins
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishGODMODE999.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+
+
+MUCH BETTER!!!
+
+
+
+# you should submit this first 95, themn i ll do 999 boom!
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 8, repeats = 8)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishGODMODE99991.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 3)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishGODMODELA1.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+# then try 3 then with 1200 both!! so three more!
+
+
+THE BEST ONE SO FARRR!!!-----
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishGODMODELA1.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+### submit this and then make it 9999 submit it again!!
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 7)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.07), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishGODMODELA6.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+## the best is 1200 5,7 ans shkinrage 0.07 NOPE !!!
+  increase skhrinkage 0.12 in both 5,5() and 5,7() 1200 try this
+ then if good try 1,35 for both 5,7() and 5,5() 1200
+ 
+ 4 more to do:
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2Turkish99.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+### no splitting fully training data
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 1, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2Turkish99_REAL.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2Turkish101_dif.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 1, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishREAL101_dif.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(800), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2TurkishREAL199_dif.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 1, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(800), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2REALREALREAL111.csv", row.names = FALSE)
+
+
+
+## is the best one yet! 73.196!!!
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+hit 1200, 5,10, 0.1 10, hit 74 percent!!!! - but test data not as good!
+
+do it with 15 repeats both on 800 and 1200----!!! next up
+
+best one with 800 5,10!! try 5,15 , 5,20
+even 700 ish!
+
+--
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 1, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 15)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(700), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2REALREALREAL555.csv", row.names = FALSE)
+
+
+
+## is the best one yet! 73.196!!!
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+## kaggle score:  try 700 with 10 repeats!!! gotta check them --
+
+do it for 800 full and do that---! taht it is!! maybe 15 repeats!!
+
+try 1200  and full 1 as well then make it full!-
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 0.95, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(4), 
+                       n.trees = c(1200), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2Turkish100.csv", row.names = FALSE)
+
+
+
+
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+if not better i ll d0 12 then 15 lets see
+tried it all- with try n.minobsinnode as 8 as well- will submit both 95% of default 5,51200,0.1,10 and n.minobsinnode as 5(7376 again not amazing!)
+
+so a total of 4 will be processed after choosingthe best n.minobsinnode deafult is 10 lets see..
+will do 5,5 with low skinge then i ll do 0,1,25 shrinaage and 5 5 let see
+# make the interaction dept 3 and run it again fo rhte code ! also deccrease to 5,5 and run it again with shrinkeg slightly lower
+# try 900 5,5() , 900, 6,6()  and 7,7() also 900 5,7(0.7373) and 1200,5,7() then 800,6,6 then 700, 7,7
+# best so far(1200,5,5-73.9ish)
+#tried 1500,5,5(same as the best one)
+#12,6,6(0.73592)
+
+#just for sake for experimenting, i ll increase to 6,6 and shrinkage down for 1200
+
+#using # 8 cores!!
+
+
+
+
+
+
+
+# will try more options with 10 repeats on 800 which i think it the highest on kaggle and will do alternates of 10-15-20 repeats with 600-700-1000-1200(i doubt it)
+
+
+
+
+
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 1, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 20)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(800), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2_REALREALREAL800_20.csv", row.names = FALSE)
+
+
+
+## is the best one yet! 73.196!!!
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+
+```{r}
+# Set the number of cores you want to use
+options(mc.cores = 8)
+```
+
+
+
+```{r}
+# Load necessary libraries
+
+start_time <- Sys.time()
+
+library(gbm)
+library(caret)
+library(dplyr)
+library(tidyr)
+options(mc.cores = 8)
+
+# Setup parallel processing
+
+# Splitting the data into training and validation sets
+set.seed(123)
+split <- createDataPartition(train_data$Alcoholic.Status, p = 1, list = FALSE)
+train_set <- train_data[split,]
+validation_set <- train_data[-split,]
+
+# Convert target variable to numeric for modeling
+train_set$Alcoholic.Status <- as.numeric(as.factor(train_set$Alcoholic.Status)) - 1
+validation_set$Alcoholic.Status <- as.numeric(as.factor(validation_set$Alcoholic.Status)) - 1
+
+# Model Building with caret
+set.seed(123)
+
+# fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 2)
+# gbmGrid <- expand.grid(interaction.depth = c(1,3), 
+#                        n.trees = c(500,1000), 
+#                        shrinkage = c(0.05,0.1), 
+#                        n.minobsinnode = c(10,20))
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+gbmGrid <- expand.grid(interaction.depth = c(3), 
+                       n.trees = c(1000), 
+                       shrinkage = c(0.1), 
+                       n.minobsinnode = c(10))
+
+gbm_model <- train(Alcoholic.Status ~ ., 
+                   data = train_set, 
+                   method = "gbm", 
+                   trControl = fitControl,
+                   tuneGrid = gbmGrid,
+                   verbose = FALSE)
+
+# Stop parallel processing after the model training
+#stopImplicitCluster()
+
+# Continue with model evaluation and other tasks...
+
+# Model Evaluation
+validation_predictions <- predict(gbm_model, newdata = validation_set)
+
+# # Model Evaluation
+#validation_predictions <- predict(gbm_model, newdata = validation_set, type = "prob")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(validation_predictions) && ncol(validation_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    validation_predicted_classes <- ifelse(validation_predictions[,2] > 0.5, 1, 0)
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    validation_predicted_classes <- ifelse(validation_predictions > 0.5, 1, 0)
+}
+
+# Calculating accuracy
+accuracy <- mean(validation_predicted_classes == validation_set$Alcoholic.Status)
+print(paste("Accuracy on validation data:", accuracy))
+
+
+
+
+
+
+
+# Predicting on the test set
+test_predictions <- predict(gbm_model, newdata = test_data, type = "raw")
+
+# Check if the predictions are a matrix with two columns
+if (is.matrix(test_predictions) && ncol(test_predictions) == 2) {
+    # Assuming the second column is the probability for class '1'
+    test_predicted_class <- ifelse(test_predictions[,2] > 0.5, "Y", "N")
+} else {
+    # Handling the scenario where predictions are a vector (only one class predicted)
+    test_predicted_class <- ifelse(test_predictions > 0.5, "Y", "N")
+}
+
+
+submission <- data.frame(ID = test_data$ID, Alcoholic.Status = test_predicted_class)
+write.csv(submission, file = "EmreTuranLecture2_REALREALREAL1000_5_3interaction_10node.csv", row.names = FALSE)
+
+
+
+## is the best one yet! 73.196!!!
+
+
+
+end_time <- Sys.time()
+duration <- end_time - start_time
+print(paste("Model training took:", duration))
+
+```
+I HAVE TRIED EVERY OTHER ALTERNATIVE THE BEST IS 800/3 INTERACTION. 10/10---
+JUST DO VARIABLE SELECTION RIDDE LASSO ETX BUT IS IT POSSIBLE THAT ANOTHER ALTERNATIVE MIGHT WORK BETTER WITH THESE!
+
+## make it 8 core and then run it all!! after 2-3 min of trials - it ll activate
+#700_15- was lower but it was really close so try 700_10
+
+
+
+try
+
+# tommmmorow-700_10( depending on this we ll decide to increase or decrease) 800_15. 900_10 900_15  1000_10 1000_15 _ 600_20 600_10 600_15
+
+following days: even try 20's for all but all depends on 700_10's performance- its lower boom 800_15 or 900_10 or 15 will be better, if higher than 600_10 or 15 is coming--
+
+will try 800_20 too if that one is the largest on kaggle then i ll do that!! for others too!
+
+---- if 700_10 is lower or higher than 800_10 i ll chose a side then increase the 10 ot 15 or even 20- after traying multiple 10_15 on the same ntrees - i would know which one works the best-whether 10_15
+
+keep alternating everyday! for these!!- 1000 might be too mcuh overfit we ll see
+# highest rn on kaggle is 800_10 yep!!!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
